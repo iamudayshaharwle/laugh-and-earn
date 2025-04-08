@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smile Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        
+        <header>
+            <h1>LAUGH AND EARN</h1>
+        </header>
+
+        <h2>Welcome {{ username }}!</h2>
+        <p>Your Points: {{ points }}</p>
+
+        <div id="joke-container">
+            <h2>Click on the button to get a joke!</h2>
+        </div>
+
+        <div class="button-container">
+            <button id="joke-btn" onclick="getJoke()">Get Joke</button>
+            <button id="capture-btn" onclick="capturePhoto()" disabled>Capture Photo</button>
+        </div>
+
+        <div id="add-joke-container">
+            <h3>Add your own joke:</h3>
+            <textarea id="user-joke" placeholder="Type your joke here..."></textarea><br>
+            <button id="submit-joke-btn" onclick="submitJoke()">Submit Joke</button>
+        </div>
+
+        <div id="snapshot" class="snapshot-container"></div>
+        <div id="message" class="message-container"></div>
+
+        
+        <div class="button-container">
+            <a href="{{ url_for('logout') }}"><button>Logout</button></a>
+        </div>
+    </div>
+
+    <script>
+        function getJoke() {
+            fetch('/get_joke')
+                .then(response => response.json())
+                .then(data => {
+                    const joke = data.joke;
+                    
+                    document.getElementById('joke-container').innerHTML = `<h2>${joke}</h2>`;
+                   
+                    document.getElementById('capture-btn').disabled = false;
+                })
+                .catch(error => console.error('Error fetching joke:', error));
+        }
+
+        function capturePhoto() {
+            fetch('/capture_photo', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    const smileDetected = data.smile_detected;
+                    const imageBytes = data.image;
+
+                    const imgElement = document.createElement('img');
+                    imgElement.src = 'data:image/jpeg;base64,' + imageBytes;
+
+                    document.getElementById('snapshot').innerHTML = '';
+                    document.getElementById('snapshot').appendChild(imgElement);
+
+                    const messageElement = document.getElementById('message');
+                    if (smileDetected) {
+                        messageElement.innerHTML = "<h2>You smile, you win 10 points!</h2>";
+                        messageElement.style.color = "green";
+                    } else {
+                        messageElement.innerHTML = "<h2>Try again, no smile detected!</h2>";
+                        messageElement.style.color = "red";
+                    }
+
+                    document.getElementById('capture-btn').disabled = true;
+                })
+                .catch(error => console.error('Error capturing photo:', error));
+        }
+
+        function submitJoke() {
+            const userJoke = document.getElementById('user-joke').value;
+            if (userJoke) {
+                fetch('/submit_joke', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ joke: userJoke })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert('Your joke has been submitted!');
+                    document.getElementById('user-joke').value = ''; 
+                    document.querySelector('p').innerText = `Your Points: ${data.points}`;
+                })
+                .catch(error => console.error('Error submitting joke:', error));
+            } else {
+                alert('Please enter a joke before submitting!');
+            }
+        }
+    </script>
+</body>
+</html>
